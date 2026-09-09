@@ -1,0 +1,97 @@
+import java.util.Scanner;
+public class HillCipher {
+    static final int SIZE = 3;
+    // Function to find modular inverse of determinant
+    static int modInverse(int a, int m) {
+        a = ((a % m) + m) % m;
+        for (int x = 1; x < m; x++) {
+            if ((a * x) % m == 1)
+                return x;
+        }
+        return -1;
+    }
+    // Determinant of 3x3 matrix
+    static int determinant(int[][] key) {
+        int det = key[0][0] * (key[1][1] * key[2][2] - key[1][2] * key[2][1])
+                - key[0][1] * (key[1][0] * key[2][2] - key[1][2] * key[2][0])
+                + key[0][2] * (key[1][0] * key[2][1] - key[1][1] * key[2][0]);
+        det %= 26;
+        if (det < 0)
+            det += 26;
+        return det;
+    }
+    // Find inverse matrix modulo 26
+    static int[][] inverse(int[][] key) {
+
+        int det = determinant(key);
+        int detInv = modInverse(det, 26);
+        if (detInv == -1) {
+            System.out.println("Key matrix is not invertible modulo 26.");
+            System.exit(0);
+        }
+        int[][] adj = new int[3][3];
+        adj[0][0] = key[1][1] * key[2][2] - key[1][2] * key[2][1];
+        adj[0][1] = -(key[1][0] * key[2][2] - key[1][2] * key[2][0]);
+        adj[0][2] = key[1][0] * key[2][1] - key[1][1] * key[2][0];
+        adj[1][0] = -(key[0][1] * key[2][2] - key[0][2] * key[2][1]);
+        adj[1][1] = key[0][0] * key[2][2] - key[0][2] * key[2][0];
+        adj[1][2] = -(key[0][0] * key[2][1] - key[0][1] * key[2][0]);
+        adj[2][0] = key[0][1] * key[1][2] - key[0][2] * key[1][1];
+        adj[2][1] = -(key[0][0] * key[1][2] - key[0][2] * key[1][0]);
+        adj[2][2] = key[0][0] * key[1][1] - key[0][1] * key[1][0];
+        // Transpose and multiply by determinant inverse
+        int[][] inv = new int[3][3];
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                inv[i][j] = adj[j][i];
+                inv[i][j] = (inv[i][j] * detInv) % 26;
+                if (inv[i][j] < 0)
+                    inv[i][j] += 26;
+            }
+        }
+
+        return inv;
+    }
+    // Matrix multiplication modulo 26
+    static int[] multiply(int[][] key, int[] msg) {
+        int[] result = new int[SIZE];
+        for (int i = 0; i < SIZE; i++) {
+            result[i] = 0;
+            for (int j = 0; j < SIZE; j++) {
+                result[i] += key[i][j] * msg[j];
+            }
+            result[i] %= 26;
+        }
+        return result;
+    }
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int[][] key = new int[3][3];
+        System.out.println("Enter 3x3 key matrix:");
+        for (int i = 0; i < SIZE; i++)
+            for (int j = 0; j < SIZE; j++)
+                key[i][j] = sc.nextInt();
+        System.out.print("Enter 3-letter plaintext: ");
+        String text = sc.next().toLowerCase();
+        if (text.length() != 3) {
+            System.out.println("Plaintext must contain exactly 3 letters.");
+            return;
+        }
+        int[] plain = new int[SIZE];
+        for (int i = 0; i < SIZE; i++)
+            plain[i] = text.charAt(i) - 'a';
+        // Encryption
+        int[] cipher = multiply(key, plain);
+        System.out.print("\nEncrypted Text: ");
+        for (int x : cipher)
+            System.out.print((char) (x + 'a'));
+        // Decryption
+        int[][] invKey = inverse(key);
+        int[] decrypted = multiply(invKey, cipher);
+        System.out.print("\nDecrypted Text: ");
+        for (int x : decrypted)
+            System.out.print((char) (x + 'a'));
+        System.out.println();
+        sc.close();
+    }
+}
